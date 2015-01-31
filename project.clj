@@ -8,7 +8,7 @@
 
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [com.facebook/react "0.11.2"]
-                 [reagent "0.4.3"]
+                 [reagent "0.5.0-alpha"]
                  [reagent-forms "0.4.3"]
                  [reagent-utils "0.1.2"]
                  [secretary "1.2.1"]
@@ -59,7 +59,8 @@
                                   [ring/ring-devel "1.3.2"]
                                   [pjstadig/humane-test-output "0.6.0"]]
 
-                   :plugins [[lein-figwheel "0.2.0-SNAPSHOT"]]
+                   :plugins [[lein-figwheel "0.2.0-SNAPSHOT"]
+                             [cider/cider-nrepl "0.9.0-SNAPSHOT"]]
 
                    :injections [(require 'pjstadig.humane-test-output)
                                 (pjstadig.humane-test-output/activate!)]
