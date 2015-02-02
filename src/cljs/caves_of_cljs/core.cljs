@@ -13,9 +13,23 @@
 ;; -------------------------
 ;; Views
 
-(defn home-page []
+(defn canvas [state]
+  (reagent/create-class
+   {:component-did-mount (fn [this]
+                           (let [console (js/ROT.Display.
+                                          #js {:width 40
+                                               :height 15})]
+                             (-> this
+                                 (.getDOMNode)
+                                 (.appendChild (.getContainer console)))
+                             (swap! state assoc :console console)))
+    :component-will-unmount (fn [this] (swap! state dissoc :console))
+    :component-function (fn [state] [:div])}))
+
+(defn home-page [state]
   [:div [:h2 "Caves of Clojurescript"]
-   [:div [:a {:href "#/about"} "go to the about page"]]])
+   [:div [:a {:href "#/about"} "go to the about page"]]
+   [canvas state]])
 
 (defn about-page []
   [:div [:h2 "About caves-of-cljs"]
@@ -24,10 +38,10 @@
 (defmulti page #(:current-page (deref %)))
 
 (defmethod page nil [state]
-  [home-page])
+  [home-page state])
 
 (defmethod page :home [state]
-  [home-page])
+  [home-page state])
 
 (defmethod page :about [state]
   [about-page])
