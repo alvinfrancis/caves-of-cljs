@@ -22,8 +22,8 @@
                              (-> this
                                  (.getDOMNode)
                                  (.appendChild (.getContainer console)))
-                             (swap! state assoc :console console)))
-    :component-will-unmount (fn [this] (swap! state dissoc :console))
+                             (swap! state assoc :screen console)))
+    :component-will-unmount (fn [this] (swap! state dissoc :screen))
     :component-function (fn [state] [:div])}))
 
 (defn home-page [state]
