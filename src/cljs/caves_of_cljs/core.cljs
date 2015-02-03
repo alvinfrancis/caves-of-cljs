@@ -1,14 +1,45 @@
 (ns caves-of-cljs.core
-    (:require [reagent.core :as reagent :refer [atom]]
-              [secretary.core :as secretary :include-macros true]
-              [goog.events :as events]
-              [goog.history.EventType :as EventType])
-    (:import goog.History))
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
+  (:require [reagent.core :as reagent :refer [atom]]
+            [cljs.core.async :as async :refer [put! chan <!]]
+            [secretary.core :as secretary :include-macros true]
+            [goog.dom :as dom]
+            [goog.events :as events]
+            [goog.history.EventType :as EventType]
+            [caves-of-cljs.utils :as utils])
+  (:import goog.History))
 
 ;; -------------------------
 ;; State
 
 (defonce app-state (atom {}))
+
+;; -------------------------
+;; Game
+
+(defonce key-chan (utils/listen (dom/getDocument) (.-KEYPRESS events/EventType)))
+
+(defonce key-loop
+  (go-loop []
+    (when-let [event (<! key-chan)]
+      (swap! app-state dissoc :game)
+      (recur))))
+
+(defn draw-ui [display]
+  (.drawText display 0 0 "Welcome to the Caves of Clojure!")
+  (.drawText display 0 1 "Press any key to exit..."))
+
+(defn game-loop []
+  (when-let [display (:screen @app-state)]
+    (let [game (:game @app-state)]
+      (.clear display)
+      (draw-ui display)))
+  (.requestAnimationFrame js/window #(game-loop)))
+
+(defn init-game! []
+  (.requestAnimationFrame js/window #(game-loop)))
+
+(init-game!)
 
 ;; -------------------------
 ;; Views
@@ -29,7 +60,8 @@
 (defn home-page [state]
   [:div [:h2 "Caves of Clojurescript"]
    [:div [:a {:href "#/about"} "go to the about page"]]
-   [canvas state]])
+   (when (:game @state)
+     [canvas state])])
 
 (defn about-page []
   [:div [:h2 "About caves-of-cljs"]
@@ -54,7 +86,9 @@
 (secretary/set-config! :prefix "#")
 
 (secretary/defroute "/" []
-  (swap! app-state assoc :current-page :home))
+  (swap! app-state assoc
+         :current-page :home
+         :game {}))
 
 (secretary/defroute "/about" []
   (swap! app-state assoc :current-page :about))
