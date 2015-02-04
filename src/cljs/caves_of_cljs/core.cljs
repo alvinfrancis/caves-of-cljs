@@ -6,6 +6,7 @@
             [secretary.core :as secretary :include-macros true]
             [goog.dom :as dom]
             [goog.events :as events]
+            [goog.events.KeyCodes]
             [goog.history.EventType :as EventType]
             [caves-of-cljs.utils :as utils])
   (:import goog.History))
