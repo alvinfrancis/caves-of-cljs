@@ -30,15 +30,33 @@
       (swap! app-state dissoc :game)
       (recur))))
 
-(defn draw-ui [display]
-  (.drawText display 0 0 "Welcome to the Caves of Clojure!")
-  (.drawText display 0 1 "Press any key to exit..."))
+(defmulti draw-ui
+  (fn [ui game screen]
+    (:kind ui)))
+
+(defmethod draw-ui :start [ui game screen]
+  (.drawText screen 0 0 "Welcome to the Caves of Clojure!")
+  (.drawText screen 0 1 "Press enter to win, anything else to lose."))
+
+(defmethod draw-ui :win [ui game screen]
+  (.drawText screen 0 0 "Congratulations, you win!")
+  (.drawText screen 0 1 "Press escape to exit, anything else to restart."))
+
+(defmethod draw-ui :lose [ui game screen]
+  (.drawText screen 0 0 "Sorry, better luck next time.")
+  (.drawText screen 0 1 "Press escape to exit, anything else to go."))
+
+(defn draw-game [game screen]
+  (.clear screen)
+  (doseq [ui (:uis game)]
+    (draw-ui ui game screen)))
+
 
 (defn game-loop []
-  (when-let [display (:screen @app-state)]
-    (let [game (:game @app-state)]
-      (.clear display)
-      (draw-ui display)))
+  (when-let [screen (:screen @app-state)]
+    (let [input (:input @app-state)
+          game (:game @app-state)]
+      (draw-game game screen)))
   (.requestAnimationFrame js/window #(game-loop)))
 
 (defn init-game! []
@@ -65,7 +83,7 @@
 (defn home-page [state]
   [:div [:h2 "Caves of Clojurescript"]
    [:div [:a {:href "#/about"} "go to the about page"]]
-   (when (:game @state)
+   (when-not (empty? (:uis (:game @state)))
      [canvas state])])
 
 (defn about-page []
@@ -93,7 +111,7 @@
 (secretary/defroute "/" []
   (swap! app-state assoc
          :current-page :home
-         :game {}))
+         :game {:uis [{:kind :start}]}))
 
 (secretary/defroute "/about" []
   (swap! app-state assoc :current-page :about))
