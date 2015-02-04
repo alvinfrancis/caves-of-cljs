@@ -28,11 +28,12 @@
 (defonce key-loop
   (go-loop []
     (when-let [event (<! key-chan)]
-      (let [keycode (.. event -keyCode)
-            input (get *keys* (if (<= 96 keycode 105)
-                                (- keycode 48)
-                                keycode))]
-        (swap! app-state assoc :input input))
+      (let [key-code (.. event -keyCode)
+            input (get *keys* (if (<= 96 key-code 105)
+                                (- key-code 48)
+                                key-code))]
+        (when (:game @app-state)
+          (swap! app-state assoc-in [:game :input] input)))
       (recur))))
 
 (defmulti draw-ui
@@ -54,7 +55,8 @@
 (defn draw-game [game screen]
   (.clear screen)
   (doseq [ui (:uis game)]
-    (draw-ui ui game screen)))
+    (draw-ui ui game screen))
+  game)
 
 (defmulti process-input
   (fn [game input]
@@ -75,21 +77,26 @@
     (assoc game :uis [])
     (assoc game :uis [{:kind :start}])))
 
-(defn game-loop []
+(defn handle-input [game]
+  (if-let [input (:input game)]
+    (-> game
+        (process-input input)
+        (dissoc :input))
+    game))
+
+(defn tick-game []
   (when-let [screen (:screen @app-state)]
-    (let [input (:input @app-state)
-          game (if (nil? input)
-                 (:game @app-state)
-                 (process-input (:game (swap! app-state dissoc :input))
-                                input))]
-      (draw-game game screen)
-      (swap! app-state assoc :game game)))
-  (.requestAnimationFrame js/window #(game-loop)))
+    (let [game (:game @app-state)]
+      (swap! app-state assoc :game
+             (-> game
+                 handle-input
+                 (draw-game screen))))))
 
-(defn init-game! []
-  (.requestAnimationFrame js/window #(game-loop)))
+(defn game-loop! []
+  (tick-game)
+  (.requestAnimationFrame js/window game-loop!))
 
-(init-game!)
+(game-loop!)
 
 ;; -------------------------
 ;; Views
