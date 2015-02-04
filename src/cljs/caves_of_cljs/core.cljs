@@ -27,7 +27,11 @@
 (defonce key-loop
   (go-loop []
     (when-let [event (<! key-chan)]
-      (swap! app-state dissoc :game)
+      (let [keycode (.. event -keyCode)
+            input (get *keys* (if (<= 96 keycode 105)
+                                (- keycode 48)
+                                keycode))]
+        (swap! app-state assoc :input input))
       (recur))))
 
 (defmulti draw-ui
@@ -51,12 +55,34 @@
   (doseq [ui (:uis game)]
     (draw-ui ui game screen)))
 
+(defmulti process-input
+  (fn [game input]
+    (:kind (last (:uis game)))))
+
+(defmethod process-input :start [game input]
+  (if (= input :ENTER)
+    (assoc game :uis [{:kind :win}])
+    (assoc game :uis [{:kind :lose}])))
+
+(defmethod process-input :win [game input]
+  (if (= input :ESC)
+    (assoc game :uis [])
+    (assoc game :uis [{:kind :start}])))
+
+(defmethod process-input :lose [game input]
+  (if (= input :ESC)
+    (assoc game :uis [])
+    (assoc game :uis [{:kind :start}])))
 
 (defn game-loop []
   (when-let [screen (:screen @app-state)]
     (let [input (:input @app-state)
-          game (:game @app-state)]
-      (draw-game game screen)))
+          game (if (nil? input)
+                 (:game @app-state)
+                 (process-input (:game (swap! app-state dissoc :input))
+                                input))]
+      (draw-game game screen)
+      (swap! app-state assoc :game game)))
   (.requestAnimationFrame js/window #(game-loop)))
 
 (defn init-game! []
@@ -111,7 +137,8 @@
 (secretary/defroute "/" []
   (swap! app-state assoc
          :current-page :home
-         :game {:uis [{:kind :start}]}))
+         :game {:uis [{:kind :start}]}
+         :input nil))
 
 (secretary/defroute "/about" []
   (swap! app-state assoc :current-page :about))
