@@ -1,6 +1,7 @@
 (ns caves-of-cljs.core
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [reagent.core :as reagent :refer [atom]]
+            [clojure.set :as set]
             [cljs.core.async :as async :refer [put! chan <!]]
             [secretary.core :as secretary :include-macros true]
             [goog.dom :as dom]
@@ -17,7 +18,11 @@
 ;; -------------------------
 ;; Game
 
-(defonce key-chan (utils/listen (dom/getDocument) (.-KEYPRESS events/EventType)))
+(defonce *keys* (-> events/KeyCodes
+                    (js->clj :keywordize-keys true)
+                    (set/map-invert)))
+
+(defonce key-chan (utils/listen (dom/getDocument) (.-KEYDOWN events/EventType)))
 
 (defonce key-loop
   (go-loop []
