@@ -23,18 +23,17 @@
                     (js->clj :keywordize-keys true)
                     (set/map-invert)))
 
-(defonce key-chan (utils/listen (dom/getDocument) (.-KEYDOWN events/EventType)))
-
-(defonce key-loop
-  (go-loop []
-    (when-let [event (<! key-chan)]
-      (let [key-code (.. event -keyCode)
-            input (get *keys* (if (<= 96 key-code 105)
-                                (- key-code 48)
-                                key-code))]
-        (when (:game @app-state)
-          (swap! app-state assoc-in [:game :input] input)))
-      (recur))))
+(defn init-key-handler! [state target]
+  (let [key-chan (utils/listen target (.-KEYDOWN events/EventType))]
+    (go-loop []
+      (when-let [event (<! key-chan)]
+        (let [key-code (.. event -keyCode)
+              input (get *keys* (if (<= 96 key-code 105)
+                                  (- key-code 48)
+                                  key-code))]
+          (when (:game @app-state)
+            (swap! state assoc-in [:game :input] input)))
+        (recur)))))
 
 (defmulti draw-ui
   (fn [ui game screen]
@@ -84,19 +83,20 @@
         (dissoc :input))
     game))
 
-(defn tick-game []
-  (when-let [screen (:screen @app-state)]
-    (let [game (:game @app-state)]
-      (swap! app-state assoc :game
-             (-> game
-                 handle-input
-                 (draw-game screen))))))
+(defn tick-game [state screen]
+  (let [game (:game @state)]
+    (swap! state assoc :game
+           (-> game
+               handle-input
+               (draw-game screen)))))
 
-(defn game-loop! []
-  (tick-game)
-  (.requestAnimationFrame js/window game-loop!))
+(defn game-loop! [state screen]
+  (tick-game state screen)
+  (.requestAnimationFrame js/window #(game-loop! state screen)))
 
-(game-loop!)
+(defn init-game! [state screen]
+  (init-key-handler! state (.getContainer screen))
+  (game-loop! app-state screen))
 
 ;; -------------------------
 ;; Views
@@ -106,12 +106,12 @@
    {:component-did-mount (fn [this]
                            (let [console (js/ROT.Display.
                                           #js {:width 40
-                                               :height 15})]
-                             (-> this
-                                 (.getDOMNode)
-                                 (.appendChild (.getContainer console)))
-                             (swap! state assoc :screen console)))
-    :component-will-unmount (fn [this] (swap! state dissoc :screen))
+                                               :height 15})
+                                 console-dom (.getContainer console)
+                                 node (.getDOMNode this)]
+                             (.appendChild node console-dom)
+                             (dom/setProperties console-dom #js {:tabIndex 1})
+                             (init-game! state console)))
     :component-function (fn [state] [:div])}))
 
 (defn home-page [state]
