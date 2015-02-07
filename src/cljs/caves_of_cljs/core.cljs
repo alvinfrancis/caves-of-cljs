@@ -1,6 +1,6 @@
 (ns caves-of-cljs.core
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
-  (:require [reagent.core :as reagent :refer [atom]]
+  (:require [reagent.core :as r :refer [atom]]
             [clojure.set :as set]
             [cljs.core.async :as async :refer [put! chan <!]]
             [secretary.core :as secretary :include-macros true]
@@ -102,7 +102,7 @@
 ;; Views
 
 (defn canvas [state]
-  (reagent/create-class
+  (r/create-class
    {:component-did-mount (fn [this]
                            (let [console (js/ROT.Display.
                                           #js {:width 40
@@ -166,4 +166,4 @@
 ;; Initialize app
 (defn init! []
   (hook-browser-navigation!)
-  (reagent/render-component [current-page app-state] (.getElementById js/document "app")))
+  (r/render-component [current-page app-state] (.getElementById js/document "app")))
