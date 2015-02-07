@@ -31,8 +31,7 @@
               input (get *keys* (if (<= 96 key-code 105)
                                   (- key-code 48)
                                   key-code))]
-          (when (:game @app-state)
-            (swap! state assoc-in [:game :input] input)))
+          (swap! state assoc :input input))
         (recur)))))
 
 (defmulti draw-ui
@@ -84,11 +83,9 @@
     game))
 
 (defn tick-game [state screen]
-  (let [game (:game @state)]
-    (swap! state assoc :game
-           (-> game
-               handle-input
-               (draw-game screen)))))
+  (reset! state (-> @state
+                    handle-input
+                    (draw-game screen))))
 
 (defn game-loop! [state screen]
   (tick-game state screen)
@@ -96,7 +93,7 @@
 
 (defn init-game! [state screen]
   (init-key-handler! state (.getContainer screen))
-  (game-loop! app-state screen))
+  (game-loop! state screen))
 
 ;; -------------------------
 ;; Views
@@ -117,8 +114,7 @@
 (defn home-page [state]
   [:div [:h2 "Caves of Clojurescript"]
    [:div [:a {:href "#/about"} "go to the about page"]]
-   (when-not (empty? (:uis (:game @state)))
-     [canvas state])])
+   [canvas (r/wrap (:game @state) swap! state assoc :game)]])
 
 (defn about-page []
   [:div [:h2 "About caves-of-cljs"]
