@@ -7,8 +7,13 @@
             [goog.events :as events]
             [goog.events.KeyCodes]
             [goog.history.EventType :as EventType]
-            [caves-of-cljs.utils :as utils]))
+            [caves-of-cljs.utils :as utils]
+            [caves-of-cljs.world :as world]))
 
+;; -------------------------
+;; Constants
+
+(defonce ^:dynamic screen-size {:cols 80 :rows 24})
 
 ;; -------------------------
 ;; Input
@@ -36,9 +41,9 @@
   game)
 
 (defmethod process-input :start [game input]
-  (if (= input :ENTER)
-    (assoc game :uis [{:kind :win}])
-    (assoc game :uis [{:kind :lose}])))
+  (-> game
+      (assoc :world (world/random-world))
+      (assoc :uis [{:kind :play}])))
 
 (defmethod process-input :win [game input]
   (if (= input :ESC)
@@ -49,6 +54,12 @@
   (if (= input :ESC)
     (assoc game :uis [])
     (assoc game :uis [{:kind :start}])))
+
+(defmethod process-input :play [game input]
+  (case input
+    :ENTER     (assoc game :uis [{:kind :win}])
+    :BACKSPACE (assoc game :uis [{:kind :lose}])
+    game))
 
 (defn handle-input [game]
   (if-let [input (:input game)]
@@ -67,7 +78,7 @@
 
 (defmethod draw-ui :start [ui game screen]
   (.drawText screen 0 0 "Welcome to the Caves of Clojure!")
-  (.drawText screen 0 1 "Press enter to win, anything else to lose."))
+  (.drawText screen 0 1 "Press anything to continue."))
 
 (defmethod draw-ui :win [ui game screen]
   (.drawText screen 0 0 "Congratulations, you win!")
@@ -76,6 +87,22 @@
 (defmethod draw-ui :lose [ui game screen]
   (.drawText screen 0 0 "Sorry, better luck next time.")
   (.drawText screen 0 1 "Press escape to exit, anything else to go."))
+
+(defmethod draw-ui :play [ui {{:keys [tiles]} :world :as game} screen]
+  (let [{:keys [cols rows]} screen-size
+        vcols cols
+        vrows (dec rows)
+        start-x 0
+        start-y 0
+        end-x (+ start-x vcols)
+        end-y (+ start-y vrows)]
+    (doseq [[vrow-idx mrow-idx] (map vector
+                                     (range 0 vrows)
+                                     (range start-y end-y))
+            :let [row-tiles (subvec (tiles mrow-idx) start-x end-x)]]
+      (doseq [vcol-idx (range vcols)
+              :let [{:keys [glyph color]} (row-tiles vcol-idx)]]
+        (.draw screen vcol-idx vrow-idx glyph)))))
 
 (defn draw-game [game screen]
   (.clear screen)
@@ -104,8 +131,8 @@
   (r/create-class
    {:component-did-mount (fn [this]
                            (let [console (js/ROT.Display.
-                                          #js {:width 40
-                                               :height 15})
+                                          #js {:width (:cols screen-size)
+                                               :height (:rows screen-size)})
                                  console-dom (.getContainer console)
                                  node (.getDOMNode this)]
                              (.appendChild node console-dom)
