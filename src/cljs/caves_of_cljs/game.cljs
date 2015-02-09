@@ -32,6 +32,9 @@
   (fn [game input]
     (:kind (last (:uis game)))))
 
+(defmethod process-input nil [game input]
+  game)
+
 (defmethod process-input :start [game input]
   (if (= input :ENTER)
     (assoc game :uis [{:kind :win}])
