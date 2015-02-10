@@ -59,6 +59,7 @@
   (case input
     :ENTER     (assoc game :uis [{:kind :win}])
     :BACKSPACE (assoc game :uis [{:kind :lose}])
+    :S         (assoc game :world (world/smooth-world (:world game)))
     game))
 
 (defn handle-input [game]
