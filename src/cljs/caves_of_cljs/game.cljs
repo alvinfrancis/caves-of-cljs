@@ -73,6 +73,15 @@
 ;; -------------------------
 ;; Render
 
+(defn draw-world [screen vrows vcols start-x start-y end-x end-y tiles]
+  (doseq [[vrow-idx mrow-idx] (map vector
+                                   (range 0 vrows)
+                                   (range start-y end-y))
+          :let [row-tiles (subvec (tiles mrow-idx) start-x end-x)]]
+    (doseq [vcol-idx (range vcols)
+            :let [{:keys [glyph color]} (row-tiles vcol-idx)]]
+      (.draw screen vcol-idx vrow-idx glyph))))
+
 (defmulti draw-ui
   (fn [ui game screen]
     (:kind ui)))
@@ -90,20 +99,16 @@
   (.drawText screen 0 1 "Press escape to exit, anything else to go."))
 
 (defmethod draw-ui :play [ui {{:keys [tiles]} :world :as game} screen]
-  (let [{:keys [cols rows]} screen-size
+  (let [world (:world game)
+        tiles (:tiles world)
+        {:keys [cols rows]} screen-size
         vcols cols
         vrows (dec rows)
         start-x 0
         start-y 0
         end-x (+ start-x vcols)
         end-y (+ start-y vrows)]
-    (doseq [[vrow-idx mrow-idx] (map vector
-                                     (range 0 vrows)
-                                     (range start-y end-y))
-            :let [row-tiles (subvec (tiles mrow-idx) start-x end-x)]]
-      (doseq [vcol-idx (range vcols)
-              :let [{:keys [glyph color]} (row-tiles vcol-idx)]]
-        (.draw screen vcol-idx vrow-idx glyph)))))
+    (draw-world screen vrows vcols start-x start-y end-x end-y tiles)))
 
 (defn draw-game [game screen]
   (.clear screen)
