@@ -33,6 +33,9 @@
           (swap! state assoc :input input))
         (recur)))))
 
+(defn move [[x y] [dx dy]]
+  [(+ x dx) (+ y dy)])
+
 (defmulti process-input
   (fn [game input]
     (:kind (last (:uis game)))))
@@ -60,6 +63,12 @@
     :ENTER     (assoc game :uis [{:kind :win}])
     :BACKSPACE (assoc game :uis [{:kind :lose}])
     :S         (assoc game :world (world/smooth-world (:world game)))
+
+    :H (update-in game [:location] move [-1 0])
+    :J (update-in game [:location] move [0 1])
+    :K (update-in game [:location] move [0 -1])
+    :L (update-in game [:location] move [1 0])
+
     game))
 
 (defn handle-input [game]
@@ -88,10 +97,19 @@
     (.drawText screen crosshair-x crosshair-y "%c{red}X")))
 
 (defn get-viewport-coords [game vcols vrows]
-  (let [start-x 0
-        start-y 0
+  (let [location (:location game)
+        [center-x center-y] location
+        tiles (:tiles (:world game))
+        map-rows (count tiles)
+        map-cols (count (first tiles))
+        start-x (max 0 (- center-x (int (/ vcols 2))))
+        start-y (max 0 (- center-y (int (/ vrows 2))))
         end-x (+ start-x vcols)
-        end-y (+ start-y vrows)]
+        end-x (min end-x map-cols)
+        end-y (+ start-y vrows)
+        end-y (min end-y map-rows)
+        start-x (- end-x vcols)
+        start-y (- end-y vrows)]
     [start-x start-y end-x end-y]))
 
 (defmulti draw-ui

@@ -50,7 +50,8 @@
 (secretary/defroute "/" []
   (swap! app-state assoc
          :current-page :home
-         :game {:uis [{:kind :start}]}
+         :game {:uis [{:kind :start}]
+                :location [40 20]}
          :input nil))
 
 (secretary/defroute "/about" []
