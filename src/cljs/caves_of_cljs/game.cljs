@@ -82,6 +82,18 @@
             :let [{:keys [glyph color]} (row-tiles vcol-idx)]]
       (.draw screen vcol-idx vrow-idx glyph))))
 
+(defn draw-crosshairs [screen vcols vrows]
+  (let [crosshair-x (int (/ vcols 2))
+        crosshair-y (int (/ vrows 2))]
+    (.drawText screen crosshair-x crosshair-y "%c{red}X")))
+
+(defn get-viewport-coords [game vcols vrows]
+  (let [start-x 0
+        start-y 0
+        end-x (+ start-x vcols)
+        end-y (+ start-y vrows)]
+    [start-x start-y end-x end-y]))
+
 (defmulti draw-ui
   (fn [ui game screen]
     (:kind ui)))
@@ -104,11 +116,9 @@
         {:keys [cols rows]} screen-size
         vcols cols
         vrows (dec rows)
-        start-x 0
-        start-y 0
-        end-x (+ start-x vcols)
-        end-y (+ start-y vrows)]
-    (draw-world screen vrows vcols start-x start-y end-x end-y tiles)))
+        [start-x start-y end-x end-y] (get-viewport-coords game vcols vrows)]
+    (draw-world screen vrows vcols start-x start-y end-x end-y tiles)
+    (draw-crosshairs screen vcols vrows)))
 
 (defn draw-game [game screen]
   (.clear screen)
